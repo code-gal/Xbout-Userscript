@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Xbout-Userscript
-// @namespace    https://github.com/code-ga/Xbout-Userscript
-// @version      1.9
+// @namespace    https://github.com/code-gal/Xbout-Userscript
+// @version      1.11
 // @description  Display the user's location, device type, and registration year on the X (Twitter) page.
 // @author       code-gal
 // @match        https://x.com/*
@@ -19,17 +19,18 @@
     // Inject CSS Styles
     GM_addStyle(`
         .xbout-badge {
-            display: inline-flex !important;
+            display: flex !important;
             align-items: center;
             font-size: 13px;
             line-height: 1;
             white-space: nowrap;
-            margin-left: 4px;
+            margin-top: 2px;
             opacity: 0;
             transition: opacity 0.2s ease-out;
             color: #536471;
             cursor: default;
-            flex-shrink: 0; /* Prevent shrinking */
+            width: 100%;
+            flex-basis: 100%;
         }
         .xbout-badge.loaded {
             opacity: 1;
@@ -76,6 +77,15 @@
             opacity: 0.8;
             font-weight: 500;
         }
+        .xbout-proxy-mark {
+            width: 1.1em;
+            height: 1.1em;
+            margin-left: 4px;
+            cursor: help;
+            opacity: 0.7;
+            color: #536471;
+            vertical-align: text-bottom;
+        }
         /* Dark mode adjustments */
         @media (prefers-color-scheme: dark) {
             .xbout-badge, .xbout-dot, .xbout-year, .xbout-sep {
@@ -103,7 +113,8 @@
             APPLE: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M16.4 12.5c-.1 2.5 2.2 3.8 2.3 3.9-.0.1-.4 1.2-1.2 2.4-.7 1.1-1.5 2.1-2.7 2.1-1.2 0-1.6-.7-3-.7-1.4 0-1.8.7-3 .7-1.2 0-2.1-1.2-2.9-2.3C4.8 17.1 3.7 14.5 3.7 12c0-2.8 1.8-4.3 3.6-4.3 1.1 0 2.2.8 2.9.8.7 0 2-.9 3.3-.9 1.1.1 2.3.5 3 1.4-.1.1-1.7 1-1.7 3.5zM15 5.2c.6-1 1.1-2.2 1-3.4-1 .1-2.3.8-3 1.6-.6.8-1 2-1 3.2 1.1.1 2.3-.6 3-1.4z"/></svg>',
             ANDROID: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.5 18.5H6.5v-8h11v8zm-12-8H4v6h1.5v-6zm14.5 0H18v6h1.5v-6zM12 2.5c-3.6 0-6.5 2.7-6.5 6h13c0-3.3-2.9-6-6.5-6zm-3 4.5c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1zm6 0c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1z"/></svg>',
             WEB: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8 0-.6.1-1.1.2-1.7h5.1c.4 0 .8-.3.9-.8v-1.6c0-.5.4-.9.9-.9h1.6c.5 0 .9-.4.9-.9V4.6c2.9.9 5 3.6 5 6.7.1 4.8-3.9 8.7-8.7 8.7z"/></svg>',
-            AD: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>' // Warning icon
+            AD: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>', // Warning icon
+            AIRPLANE: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>'
         }
     };
 
@@ -307,7 +318,8 @@
                 const info = {
                     location: result.about_profile?.account_based_in || null,
                     source: result.about_profile?.source || null,
-                    createdAt: result.core?.created_at || null
+                    createdAt: result.core?.created_at || null,
+                    isAccurate: result.about_profile?.location_accurate
                 };
                 if (info.location || info.source || info.createdAt) {
                     Cache.set(username, info);
@@ -387,17 +399,26 @@
         badge.className = 'xbout-badge';
         badge.dataset.user = username;
 
-        const dot = document.createElement('span');
-        dot.className = 'xbout-dot';
-        dot.textContent = '·';
-        badge.appendChild(dot);
+        // Removed the dot as we are now on a new line
+        // const dot = document.createElement('span');
+        // dot.className = 'xbout-dot';
+        // dot.textContent = '·';
+        // badge.appendChild(dot);
 
         if (flagInfo) {
             const item = document.createElement('span');
             item.className = 'xbout-item';
             item.textContent = flagInfo.emoji;
-            item.title = `Location: ${flagInfo.name}`; 
+            item.title = `Location: ${flagInfo.name}`;
             badge.appendChild(item);
+
+            if (info.isAccurate === false) {
+                const mark = document.createElement('span');
+                mark.className = 'xbout-proxy-mark';
+                mark.innerHTML = CONFIG.ICONS.AIRPLANE;
+                mark.title = 'This data may be inaccurate.\nSome internet service providers may automatically use a proxy without user action.';
+                badge.appendChild(mark);
+            }
         }
 
         if (deviceInfo) {
@@ -477,25 +498,11 @@
     function findInsertTarget(userLink, isAd) {
         const header = userLink.closest('[data-testid="User-Name"]');
         if (!header) return userLink;
-
-        // Strategy 1: Normal Tweet with Time
-        const time = header.querySelector('time');
-        if (time) {
-            return time.parentElement;
-        }
-
-        // Strategy 2: Ad Tweet (No time, inside tweet)
-        // Insert at the very end of the header container
-        if (isAd) {
-            return header.lastElementChild || userLink;
-        }
-
-        // Strategy 3: Profile Header or others
-        if (header.lastElementChild) {
-            return header.lastElementChild;
-        }
-
-        return userLink;
+        
+        // Insert after the header container to force a new line
+        // The header container usually contains Name, Verified Icon, Handle, Time, etc.
+        // We want to be outside of that flex container to break to a new line
+        return header;
     }
 
     function processLink(link) {
@@ -542,7 +549,7 @@
     });
 
     function init() {
-        console.log('[Xbout] v1.9.1 Initialized');
+        console.log('[Xbout] v1.11 Initialized');
         initQueryIdListener();
         
         // Initial scan
